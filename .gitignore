@@ -1,0 +1,14 @@
+# ==== 与本项目无关的文件（游戏 / 逆向工具等），不提交 ====
+BF_launcher_zh_noupdate-1.3.16.exe
+BubbleFighter/
+Cutter-v2.5.0-Windows-x86_64/
+HxD/
+HxDSetup.exe
+navmesh.html
+pathengine.7z
+pathengine.dat
+pathengine.dll
+ppzs/
+
+# Claude Code 本地配置
+.claude/

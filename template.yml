@@ -1,0 +1,724 @@
+app:
+  mode: workflow
+  name: 育儿专家智能体
+  subMode: chat
+kind: app
+version: 0.1.0
+workflow:
+  graph:
+    edges:
+    - id: Classifier_T0TH-Classifier_T0TH_TCCz-Retrieval_SAvo-Retrieval_SAvo
+      source: Classifier_T0TH
+      sourceHandle: Classifier_T0TH_TCCz
+      target: Retrieval_SAvo
+      targetHandle: Retrieval_SAvo
+    - id: Classifier_T0TH-Classifier_T0TH_9oLH-Retrieval_g7uN-Retrieval_g7uN
+      source: Classifier_T0TH
+      sourceHandle: Classifier_T0TH_9oLH
+      target: Retrieval_g7uN
+      targetHandle: Retrieval_g7uN
+    - id: Classifier_T0TH-Classifier_T0TH_sbL2-Retrieval_6s2O-Retrieval_6s2O
+      source: Classifier_T0TH
+      sourceHandle: Classifier_T0TH_sbL2
+      target: Retrieval_6s2O
+      targetHandle: Retrieval_6s2O
+    - id: Retrieval_SAvo-Retrieval_SAvo-LLM_f8jd-LLM_f8jd
+      source: Retrieval_SAvo
+      sourceHandle: Retrieval_SAvo
+      target: LLM_f8jd
+      targetHandle: LLM_f8jd
+    - id: LLM_f8jd-LLM_f8jd-End_Jy5X-End_Jy5X
+      source: LLM_f8jd
+      sourceHandle: LLM_f8jd
+      target: End_Jy5X
+      targetHandle: End_Jy5X
+    - id: Retrieval_g7uN-Retrieval_g7uN-LLM_rYgw-LLM_rYgw
+      source: Retrieval_g7uN
+      sourceHandle: Retrieval_g7uN
+      target: LLM_rYgw
+      targetHandle: LLM_rYgw
+    - id: Classifier_T0TH-Classifier_T0TH_default-VariableHandle_ifit-VariableHandle_ifit
+      source: Classifier_T0TH
+      sourceHandle: Classifier_T0TH_default
+      target: VariableHandle_ifit
+      targetHandle: VariableHandle_ifit
+    - id: VariableHandle_ifit-VariableHandle_ifit-End_Jy5X-End_Jy5X
+      source: VariableHandle_ifit
+      sourceHandle: VariableHandle_ifit
+      target: End_Jy5X
+      targetHandle: End_Jy5X
+    - id: LLM_rYgw-LLM_rYgw-End_Jy5X-End_Jy5X
+      source: LLM_rYgw
+      sourceHandle: LLM_rYgw
+      target: End_Jy5X
+      targetHandle: End_Jy5X
+    - id: LLM_QglB-LLM_QglB-End_Jy5X-End_Jy5X
+      source: LLM_QglB
+      sourceHandle: LLM_QglB
+      target: End_Jy5X
+      targetHandle: End_Jy5X
+    - id: Retrieval_6s2O-Retrieval_6s2O-LLM_QglB-LLM_QglB
+      source: Retrieval_6s2O
+      sourceHandle: Retrieval_6s2O
+      target: LLM_QglB
+      targetHandle: LLM_QglB
+    - id: Start_vMPp-Start_vMPp-Classifier_T0TH-Classifier_T0TH
+      source: Start_vMPp
+      sourceHandle: Start_vMPp
+      target: Classifier_T0TH
+      targetHandle: Classifier_T0TH
+    nodes:
+    - id: Start_vMPp
+      type: Start
+      name: 开始
+      x: 12
+      y: 324
+      config:
+        inputParams: []
+        outputParams:
+        - key: BabyName
+          type: String
+          desc: 宝宝姓名
+        - key: BabyGender
+          type: String
+          desc: 宝宝性别
+        - key: BabyAge
+          type: Number
+          desc: 宝宝年龄
+        - key: AllergyHistory
+          type: String
+          desc: 过敏史
+        - key: MedicalHistory
+          type: String
+          desc: 病历史
+        - key: VaccinationRecord
+          type: String
+          desc: 疫苗接种记录
+        - key: FoodType
+          type: String
+          desc: 喂养食物
+        nodeParam: {}
+    - id: End_Jy5X
+      type: End
+      name: 结束
+      x: 1901
+      y: 346
+      config:
+        inputParams: []
+        outputParams: []
+        nodeParam:
+          jsonParams: []
+          streamSwitch: false
+          outputType: text
+          textTemplate: "${LLM_f8jd.result}"
+    - id: Classifier_T0TH
+      type: Classifier
+      name: 意图识别
+      x: 482
+      y: 252
+      config:
+        inputParams:
+        - key: content
+          type: String
+          value: "${sys.query}"
+          valueFrom: refer
+        outputParams:
+        - key: result
+          type: Object
+          desc: 输出结果
+          properties:
+          - key: thought
+            type: String
+            desc: 思考过程
+          - key: subject
+            type: String
+            desc: 命中主题
+        nodeParam:
+          shortMemory:
+            enabled: true
+            type: custom
+            round: 3
+            param:
+              key: historyList
+              type: Array<String>
+              valueFrom: refer
+              value: "${sys.historyList}"
+          multiDecision: false
+          modelConfig:
+            modelId: tongyi-intent-detect-v3
+            params:
+              top_p: 0.8
+              temperature: 0.7
+            modelName: 意图分类模型
+            capabilities:
+            - TG
+            referParams: []
+          instruction: ""
+          contextParam:
+            key: historyList
+            type: Array<String>
+            valueFrom: refer
+            value: "${sys.historyList}"
+          modeSwitch: efficient
+          conditions:
+          - conditionId: default
+            subject: ""
+            targetIds:
+            - VariableHandle_ifit
+          - conditionId: TCCz
+            subject: 婴幼儿的营养喂养咨询
+            targetIds:
+            - Retrieval_SAvo
+          - conditionId: 9oLH
+            subject: 婴幼儿的医疗问诊咨询
+            targetIds:
+            - Retrieval_g7uN
+          - conditionId: sbL2
+            subject: 婴幼儿的教育启蒙咨询
+            targetIds:
+            - Retrieval_6s2O
+          contextSwitch: true
+    - id: Retrieval_SAvo
+      type: Retrieval
+      name: 检索营养喂养知识库
+      x: 976
+      y: 52
+      config:
+        inputParams:
+        - key: content
+          type: String
+          value: "${sys.query}"
+          valueFrom: refer
+        - key: imageList
+          type: Array<String>
+          valueFrom: refer
+        - key: searchFilters
+          type: Array<Object>
+          valueFrom: refer
+        outputParams:
+        - key: result
+          type: Object
+          desc: 输出结果
+          properties:
+          - key: chunkList
+            type: Array<Object>
+            desc: 召回片段列表
+            properties:
+            - key: content
+              type: String
+              desc: 内容
+            - key: title
+              type: String
+              desc: 标题
+            - key: documentName
+              type: String
+              desc: 文档名称
+            - key: score
+              type: Number
+              desc: 分数
+            - key: id
+              type: String
+              desc: 切片id
+            - key: dataId
+              type: String
+              desc: 文档id
+            - key: docUrl
+              type: String
+              desc: 源文件下载链接
+            - key: knowledgeBaseId
+              type: String
+              desc: 知识库id
+            - key: nid
+              type: String
+              desc: 原文标识
+            - key: images
+              type: Array<String>
+              desc: 图片列表
+            - key: pageNumber
+              type: Array<Number>
+              desc: 页码
+          - key: rewriteQuery
+            type: String
+            desc: 改写后内容
+        nodeParam:
+          topK: 10
+          scene_config:
+            image:
+              prompt_strategy:
+                rerank_top_n: 5
+                prompt_max_token_length: 2000
+                prompt_strategy_name: topk
+              rewrite:
+                enable_rewrite: true
+            document:
+              prompt_strategy:
+                rerank_top_n: 5
+                prompt_max_token_length: 2000
+                prompt_strategy_name: topk
+              rewrite:
+                enable_rewrite: true
+            table:
+              prompt_strategy:
+                rerank_top_n: 5
+                prompt_max_token_length: 2000
+                prompt_strategy_name: topk
+              rewrite:
+                enable_rewrite: true
+          search_mode: direct_search
+          knowledgeBaseCodeList:
+          - 3a6e6ecloj
+          retrieveMode: system
+    - id: Retrieval_g7uN
+      type: Retrieval
+      name: 检索医疗问诊知识库
+      x: 977
+      y: 214
+      config:
+        inputParams:
+        - key: content
+          type: String
+          value: "${sys.query}"
+          valueFrom: refer
+        - key: imageList
+          type: Array<String>
+          valueFrom: refer
+        - key: searchFilters
+          type: Array<Object>
+          valueFrom: refer
+        outputParams:
+        - key: result
+          type: Object
+          desc: 输出结果
+          properties:
+          - key: chunkList
+            type: Array<Object>
+            desc: 召回片段列表
+            properties:
+            - key: content
+              type: String
+              desc: 内容
+            - key: title
+              type: String
+              desc: 标题
+            - key: documentName
+              type: String
+              desc: 文档名称
+            - key: score
+              type: Number
+              desc: 分数
+            - key: id
+              type: String
+              desc: 切片id
+            - key: dataId
+              type: String
+              desc: 文档id
+            - key: docUrl
+              type: String
+              desc: 源文件下载链接
+            - key: knowledgeBaseId
+              type: String
+              desc: 知识库id
+            - key: nid
+              type: String
+              desc: 原文标识
+            - key: images
+              type: Array<String>
+              desc: 图片列表
+            - key: pageNumber
+              type: Array<Number>
+              desc: 页码
+          - key: rewriteQuery
+            type: String
+            desc: 改写后内容
+        nodeParam:
+          topK: 10
+          scene_config:
+            image:
+              prompt_strategy:
+                rerank_top_n: 5
+                prompt_max_token_length: 2000
+                prompt_strategy_name: topk
+              rewrite:
+                enable_rewrite: true
+            document:
+              prompt_strategy:
+                rerank_top_n: 5
+                prompt_max_token_length: 2000
+                prompt_strategy_name: topk
+              rewrite:
+                enable_rewrite: true
+            table:
+              prompt_strategy:
+                rerank_top_n: 5
+                prompt_max_token_length: 2000
+                prompt_strategy_name: topk
+              rewrite:
+                enable_rewrite: true
+          search_mode: direct_search
+          knowledgeBaseCodeList:
+          - 530f7zhzzf
+          retrieveMode: system
+    - id: Retrieval_6s2O
+      type: Retrieval
+      name: 检索教育启蒙知识库
+      x: 976
+      y: 345
+      config:
+        inputParams:
+        - key: content
+          type: String
+          value: "${sys.query}"
+          valueFrom: refer
+        - key: imageList
+          type: Array<String>
+          valueFrom: refer
+        - key: searchFilters
+          type: Array<Object>
+          valueFrom: refer
+        outputParams:
+        - key: result
+          type: Object
+          desc: 输出结果
+          properties:
+          - key: chunkList
+            type: Array<Object>
+            desc: 召回片段列表
+            properties:
+            - key: content
+              type: String
+              desc: 内容
+            - key: title
+              type: String
+              desc: 标题
+            - key: documentName
+              type: String
+              desc: 文档名称
+            - key: score
+              type: Number
+              desc: 分数
+            - key: id
+              type: String
+              desc: 切片id
+            - key: dataId
+              type: String
+              desc: 文档id
+            - key: docUrl
+              type: String
+              desc: 源文件下载链接
+            - key: knowledgeBaseId
+              type: String
+              desc: 知识库id
+            - key: nid
+              type: String
+              desc: 原文标识
+            - key: images
+              type: Array<String>
+              desc: 图片列表
+            - key: pageNumber
+              type: Array<Number>
+              desc: 页码
+          - key: rewriteQuery
+            type: String
+            desc: 改写后内容
+        nodeParam:
+          topK: 10
+          scene_config:
+            image:
+              prompt_strategy:
+                rerank_top_n: 5
+                prompt_max_token_length: 2000
+                prompt_strategy_name: topk
+              rewrite:
+                enable_rewrite: true
+            document:
+              prompt_strategy:
+                rerank_top_n: 5
+                prompt_max_token_length: 2000
+                prompt_strategy_name: topk
+              rewrite:
+                enable_rewrite: true
+            table:
+              prompt_strategy:
+                rerank_top_n: 5
+                prompt_max_token_length: 2000
+                prompt_strategy_name: topk
+              rewrite:
+                enable_rewrite: true
+          search_mode: direct_search
+          knowledgeBaseCodeList:
+          - ol0yjz1e2v
+          retrieveMode: system
+    - id: LLM_f8jd
+      type: LLM
+      name: 营养喂养大模型生成
+      x: 1397
+      y: 48
+      config:
+        inputParams: []
+        outputParams:
+        - key: result
+          type: String
+          desc: 文本输出
+        - key: reasoningContent
+          type: String
+          desc: 深度思考
+        nodeParam:
+          promptContent: "\n\n# 用户问题\n${sys.query}"
+          shortMemory:
+            enabled: false
+            type: self
+            round: 3
+            param:
+              key: historyList
+              type: Array<String>
+              valueFrom: refer
+              value: "${sys.historyList}"
+          tryCatchConfig:
+            strategy: noop
+            defaultValues:
+            - key: result
+              type: String
+              desc: 文本输出
+              isSystem: true
+          batchEnable: false
+          modelConfig:
+            modelId: qwen-plus-latest
+            params:
+              top_p: 0.8
+              temperature: 0.7
+              enable_thinking: true
+              thinking_budget: 4000
+              result_format: message
+            referParams: []
+            modelName: Qwen-Plus-Latest
+            capabilities:
+            - Reasoning
+            - TG
+          retryConfig:
+            retryEnabled: false
+            maxRetries: 3
+            retryInterval: 500
+          concurrentSize: 5
+          processCanOutput: false
+          contextParam:
+            key: historyList
+            type: Array<String>
+            valueFrom: refer
+            value: "${sys.historyList}"
+          sysPromptContent: "# 角色定位\n你是「育儿决策支持系统」中的营养喂养专家，一位循证医学背景的注册营养师与儿科喂养顾问。你的\
+            所有建议必须基于下方「检索到的知识库内容」生成，禁止依赖预训练知识中的过时或通用育儿信息。\n\n# 用户画像（每次对话自动注入）\n- 宝\
+            宝姓名：${Start_vMPp.BabyName}\n- 宝宝性别：${Start_vMPp.BabyGender}\n- 宝宝年龄：${Start_vMPp.BabyAge}（\
+            精确到月龄）\n- 过敏史：${Start_vMPp.AllergyHistory}\n- 喂养方式：${Start_vMPp.FoodType}\n\
+            \n# 检索内容注入区（由检索系统填充）\n【检索到的知识片段】\n${Retrieval_SAvo.result}\n\n【检索元数据】\n\
+            - 知识来源：${Retrieval_SAvo.result.chunkList.[docUrl]}\n- 检索置信度：${Retrieval_SAvo.result.chunkList.[score]}\n\
+            \n# RAG 知识使用规范\n\n## 1. 引用与溯源（强制）\n- 每条核心建议必须标注来源，格式为：「建议内容」[来源标题，证据等级\
+            ]\n- 若同一建议由多个片段共同支撑，可合并引用：[来源A，A级；来源B，B级]\n- 若检索结果中无直接支撑内容，必须在回复中明确说明：\
+            「该问题暂无知识库直接覆盖，以下建议基于相近主题推导，仅供参考」\n\n## 2. 知识融合优先级\n- 按证据等级排序：A级（RCT/系统\
+            综述）> B级（专家共识）> 平台知识 > 社区经验\n- 当检索结果存在冲突时：\n  ① 优先采纳 A 级证据\n  ② 若等级相同，优\
+            先采纳发布时间更新的内容\n  ③ 若仍冲突，列出不同观点并说明「目前学界存在不同看法，主流观点认为...」\n\n## 3. 年龄过滤（强\
+            制）\n- 自动过滤适用年龄与 {{宝宝年龄}} 不匹配的知识片段\n- 若检索结果中存在超龄建议（如给 3 月龄宝宝推荐 1 岁食谱），必\
+            须丢弃并标注「该建议超出当前月龄适用范围」\n- 若检索结果无匹配月龄内容，触发兜底：「暂无针对 {{宝宝年龄}} 的权威资料，建议咨询儿科\
+            营养师」\n\n## 4. 过敏史过滤（强制）\n- 若 {{过敏史}} 不为空，检索结果中含过敏原的内容必须排除或提供替代方案\n- 替代\
+            方案需同样标注来源与证据等级\n\n# 检索异常处理\n\n| 场景 | 处理策略 |\n|------|---------|\n| 检索无\
+            结果 | 坦诚告知「该问题暂无知识库覆盖」，提供相近主题参考，并记录待补充 |\n| 检索置信度 < 0.6 | 降级输出：仅输出检索到的原\
+            文摘要，不经过 LLM 改写，并标注「以下内容直接引用自...」 |\n| 检索结果与 {{宝宝年龄}} 均不匹配 | 拒绝生成具体建议，仅\
+            输出通用科普，并强烈建议咨询专业人士 |\n| 检索结果含过时信息（发布 > 5 年） | 标注「该资料发布于 X 年，可能存在更新，建议核\
+            实最新指南」 |\n\n# 安全红线\n- 禁止基于检索内容推断出未明确记载的药物/补充剂剂量\n- 禁止将社区经验（T4）作为唯一依据生成\
+            建议\n- 禁止忽略检索内容中的禁忌与就医指征\n\n# 语气与格式\n- 温暖、鼓励，称呼 {{宝宝姓名}}\n- 关键数字加粗，过敏警示\
+            用 ⚠️\n- 所有引用来源在文末汇总为「参考资料」列表"
+          batchSize: 50
+          contextSwitch: false
+    - id: LLM_rYgw
+      type: LLM
+      name: 医疗问诊大模型生成
+      x: 1415
+      y: 211
+      config:
+        inputParams: []
+        outputParams:
+        - key: result
+          type: String
+          desc: 文本输出
+        - key: reasoningContent
+          type: String
+          desc: 深度思考
+        nodeParam:
+          promptContent: "\n\n# 用户问题\n${sys.query}"
+          shortMemory:
+            enabled: false
+            type: self
+            round: 3
+            param:
+              key: historyList
+              type: Array<String>
+              valueFrom: refer
+              value: "${sys.historyList}"
+          tryCatchConfig:
+            strategy: noop
+            defaultValues:
+            - key: result
+              type: String
+              desc: 文本输出
+              isSystem: true
+          batchEnable: false
+          modelConfig:
+            modelId: qwen-plus-latest
+            params:
+              top_p: 0.8
+              temperature: 0.7
+              enable_thinking: true
+              thinking_budget: 4000
+              result_format: message
+            referParams: []
+            modelName: Qwen-Plus-Latest
+            capabilities:
+            - Reasoning
+            - TG
+          retryConfig:
+            retryEnabled: false
+            maxRetries: 3
+            retryInterval: 500
+          concurrentSize: 5
+          processCanOutput: false
+          contextParam:
+            key: historyList
+            type: Array<String>
+            valueFrom: refer
+            value: "${sys.historyList}"
+          sysPromptContent: "# 角色定位\n你是「育儿决策支持系统」中的儿童健康顾问，具备循证医学背景。你的回复必须严格基于下方「检索\
+            到的医学知识库内容」生成，禁止依赖模型预训练知识进行医学判断。\n⚠️ 你不是医生，不能做出医学诊断，不能开具处方。\n\n# 用户画像（每\
+            次对话自动注入）\n- 宝宝姓名：${Start_vMPp.BabyName}\n- 宝宝性别：${Start_vMPp.BabyGender}\n\
+            - 宝宝年龄：${Start_vMPp.BabyAge}（精确到月龄）\n- 已知过敏史：${Start_vMPp.AllergyHistory}\n\
+            - 已知疾病史：${Start_vMPp.MedicalHistory}\n- 疫苗接种记录：${Start_vMPp.VaccinationRecord}\n\
+            - 喂养方式：${Start_vMPp.FoodType}\n\n# 检索内容注入区（由检索系统填充）\n【检索到的知识片段】\n${Retrieval_g7uN.result}\n\
+            \n【检索元数据】\n- 知识来源：${Retrieval_g7uN.result.chunkList.[docUrl]}\n- 检索置信度\
+            ：${Retrieval_g7uN.result.chunkList.[score]}\n\n# RAG 知识使用规范\n\n## 1. 医\
+            学引用格式（强制）\n每条医学建议采用以下格式：\n> 「建议内容」[来源标题，证据等级，适用年龄]\n\n示例：\n> 对乙酰氨基酚的标准\
+            剂量为 10-15mg/kg/次 [儿童发热家庭管理与退热药使用规范，A级，0-14岁]\n\n## 2. 知识冲突处理\n- 当检索结果对\
+            同一症状的处理建议不一致时：\n  ① 优先采用 A 级证据（如 AAP、WHO、NICE 指南）\n  ② 若存在中外指南差异，列出差异点\
+            并说明「中国指南建议...，AAP 建议...」\n  ③ 涉及用药争议时，保守处理：标注「具体用药请遵医嘱」\n\n## 3. 月龄参数校\
+            准（强制）\n- 检索结果中的医学参数（呼吸频率正常值、退热药选择、体温测量方式）必须与 {{宝宝年龄}} 匹配\n- 若检索结果未覆盖该月\
+            龄，使用通用儿科参数但标注「通用参考值，具体请结合月龄评估」\n\n## 4. 禁忌与就医指征（强制完整输出）\n- 检索结果中的禁忌症、禁\
+            用药物、就医触发条件必须 100% 保留在输出中，不得省略\n- 用 \U0001f6a8 标注检索到的「立即就医信号」\n- 用 ⚠️ 标\
+            注检索到的「密切观察信号」\n\n# 用药安全规范\n- 仅可引用检索结果中明确提及的儿童常用 OTC 药物\n- 剂量仅给出 mg/kg\
+            \ 范围，禁止换算为具体毫升数\n- 必须标注：「具体用药请遵医嘱或咨询药师」[来源]\n\n# 安全红线\n- ❌ 禁止基于检索内容做出确\
+            定性诊断\n- ❌ 禁止在检索结果无支撑时自行补充药物剂量\n- ❌ 禁止忽略检索结果中的禁忌症与就医指征\n- ❌ 禁止在 L1/L2 场\
+            景下因检索不足而延迟输出急救信息\n\n# 语气与格式\n- 关键医学参数加粗，危险信号用 \U0001f6a8，就医建议用 \U0001f3e5\
+            \n- 文末汇总「参考资料」列表"
+          batchSize: 50
+          contextSwitch: false
+    - id: LLM_QglB
+      type: LLM
+      name: 教育启蒙大模型生成
+      x: 1423
+      y: 342
+      config:
+        inputParams: []
+        outputParams:
+        - key: result
+          type: String
+          desc: 文本输出
+        - key: reasoningContent
+          type: String
+          desc: 深度思考
+        nodeParam:
+          promptContent: "用户问题：${sys.query}"
+          shortMemory:
+            enabled: false
+            type: self
+            round: 3
+            param:
+              key: historyList
+              type: Array<String>
+              valueFrom: refer
+              value: "${sys.historyList}"
+          tryCatchConfig:
+            strategy: noop
+            defaultValues:
+            - key: result
+              type: String
+              desc: 文本输出
+              isSystem: true
+          batchEnable: false
+          modelConfig:
+            modelId: qwen-plus-latest
+            params:
+              top_p: 0.8
+              temperature: 0.7
+              enable_thinking: true
+              thinking_budget: 4000
+              result_format: message
+            referParams: []
+            modelName: Qwen-Plus-Latest
+            capabilities:
+            - Reasoning
+            - TG
+          retryConfig:
+            retryEnabled: false
+            maxRetries: 3
+            retryInterval: 500
+          concurrentSize: 5
+          processCanOutput: false
+          contextParam:
+            key: historyList
+            type: Array<String>
+            valueFrom: refer
+            value: "${sys.historyList}"
+          sysPromptContent: "# 角色定位\n你是「育儿决策支持系统」中的儿童早期发展顾问，具备发展心理学与儿童教育学背景。你的所有发展\
+            建议与互动策略必须基于下方「检索到的知识库内容」生成，禁止依赖模型预训练知识中的过时教育观念。\n\n# 用户画像（每次对话自动注入）\n\
+            - 宝宝姓名：${Start_vMPp.BabyName}\n- 宝宝性别：${Start_vMPp.BabyGender}\n- 宝宝年龄\
+            ：${Start_vMPp.BabyAge}（精确到月龄）\n\n# 检索内容注入区（由检索系统填充）\n【检索到的知识片段】\n${Retrieval_6s2O.result}\n\
+            \n【检索元数据】\n- 知识来源：${Retrieval_6s2O.result.chunkList.[docUrl]}\n- 检索置信度\
+            ：${Retrieval_6s2O.result.chunkList.[score]}\n\n# RAG 知识使用规范\n\n## 1. 发\
+            展建议引用格式（强制）\n每条建议采用以下格式：\n> 「建议内容」[来源标题，证据等级，适用年龄]\n\n示例：\n> 每天亲子共读 15-20\
+            \ 分钟可促进语言爆发期发展 [12-24月龄语言爆发期的沟通引导，A级，12-24月]\n\n## 2. 月龄精准匹配（强制）\n- 仅使\
+            用适用年龄包含 {{宝宝年龄}} 的知识片段\n- 若检索结果中的活动/游戏超出当前月龄能力，必须标注「该活动建议适用于 X 月龄，{{宝宝\
+            姓名}}目前可尝试简化版...」\n- 若检索结果无匹配月龄内容，触发兜底：「暂无针对 {{宝宝年龄}} 的发展建议，以下基于相邻月龄推导」\
+            \n\n## 3. 语言环境适配\n- 单语家庭：优先引用强调词汇丰富度与叙事输入的片段\n- 双语/多语家庭：优先引用双语发展相关片段，明\
+            确标注「双语环境不会导致语言延迟」[来源]\n- 引用时必须保留检索内容中的关键话术模板（如平行说话、扩展技巧）\n\n## 4. 发展迟缓\
+            预警（强制）\n- 检索结果中的发展迟缓预警信号必须完整输出\n- 若 {{宝宝年龄}} 已达到某里程碑评估节点（如 18 月无意义单词），\
+            必须明确标注并建议评估\n\n# 检索异常处理\n\n| 场景 | 处理策略 |\n|------|---------|\n| 检索无结果\
+            \ | 坦诚告知「该发展问题暂无知识库覆盖」，提供通用发展科普，建议咨询发育行为科 |\n| 检索结果与 {{宝宝年龄}} 不匹配 | 标注\
+            「检索到的资料适用于 X 月龄，以下为适配建议」，避免直接套用 |\n| 检索结果仅含经验分享（T4） | 降级为「家长经验分享，非循证建议\
+            」，同时建议参考权威发展指南 |\n| 检索结果含争议观点 | 列出不同观点并标注来源，不强行统一 |\n\n# 安全红线\n- ❌ 禁止基\
+            于检索内容给出医学诊断（如自闭症、多动症）\n- ❌ 禁止推荐过早的学术化训练（严格遵循检索结果中的年龄建议）\n- ❌ 禁止忽略检索结果中\
+            的屏幕时间限制与发展迟缓预警\n- ❌ 禁止将社区经验作为发展建议的唯一依据\n\n# 语气与格式\n- 温暖、鼓励、赋能，称呼 {{宝宝姓\
+            名}}\n- 发展里程碑用 \U0001f4ca，亲子活动用 \U0001f3ae，预警信号用 ⚠️，推荐绘本用 \U0001f4da\n\
+            - 文末汇总「参考资料」列表"
+          batchSize: 50
+          contextSwitch: false
+    - id: VariableHandle_ifit
+      type: VariableHandle
+      name: 变量处理未识别
+      x: 1200
+      y: 476
+      config:
+        inputParams: []
+        outputParams:
+        - key: result
+          type: String
+        nodeParam:
+          jsonParams: []
+          groups:
+          - groupId: Y6Xj
+            groupName: Group1
+            outputType: String
+            variables:
+            - id: yy0S
+              valueFrom: refer
+              type: String
+            - id: DiNX
+              valueFrom: refer
+              type: String
+          templateContent: |-
+            你好，请告诉我想要咨询的哪方面的问题？
+            A. 营养喂养
+            B. 医疗问诊
+            C. 教育启蒙
+          groupStrategy: firstNotNull
+          type: template
+  globalConfig:
+    historyConfig:
+      historySwitch: true
+      historyMaxRound: 5
+    historyMaxRound: 5

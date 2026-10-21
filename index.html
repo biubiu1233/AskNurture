@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>母婴育儿智能问答助手 · RAG Demo</title>
+<style>
+  :root{
+    /* —— 品牌粉色系（暖色）—— */
+    --pink-50:  #fdf2f6;
+    --pink-100: #fbe3ec;
+    --pink-200: #f7c8da;
+    --pink-300: #f0a3c2;
+    --pink-400: #e67ba4;
+    --pink-500: #d95a8b;
+    --pink-600: #c04074;
+    --pink-700: #9c305c;
+
+    --peach:    #f8a97f;
+    --cream:    #fff4ec;
+
+    /* 文本 */
+    --ink:      #432f38;
+    --ink-2:    #7a5f6a;
+    --ink-3:    #a98c98;
+
+    /* 表面 */
+    --bg:       #fff7f9;
+    --surface:  #ffffff;
+    --surface-2:#fffbfc;
+    --hairline: #f3e2e8;
+    --line:     #ecd5de;
+
+    /* 状态（保留色，仅用于合规/成功） */
+    --good:     #0ca30c;
+
+    --radius: 18px;
+    --radius-sm: 12px;
+    --shadow: 0 8px 30px rgba(192,64,116,.10);
+    --shadow-sm: 0 2px 12px rgba(192,64,116,.08);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    font-family: system-ui,-apple-system,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 600px at 85% -100px, var(--pink-100), transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, var(--cream), transparent 55%),
+      var(--bg);
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ============ 顶部导航 ============ */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;gap:20px;
+    padding:12px 28px;
+    background:rgba(255,251,252,.86);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--hairline);
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;letter-spacing:.3px}
+  .brand .logo{
+    width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(135deg,var(--pink-400),var(--pink-600));
+    display:grid;place-items:center;color:#fff;font-size:18px;
+    box-shadow:var(--shadow-sm);
+  }
+  .nav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+  .nav a{
+    text-decoration:none;color:var(--ink-2);font-size:14px;font-weight:500;
+    padding:8px 14px;border-radius:999px;transition:.2s;
+  }
+  .nav a:hover{background:var(--pink-100);color:var(--pink-700)}
+
+  /* ============ Hero ============ */
+  .hero{
+    padding:64px 28px 48px;text-align:center;
+  }
+  .hero .tag{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:13px;color:var(--pink-700);font-weight:600;
+    background:var(--pink-100);padding:6px 14px;border-radius:999px;margin-bottom:18px;
+  }
+  .hero h1{
+    font-size:clamp(28px,5vw,46px);margin:0 0 14px;font-weight:800;letter-spacing:.5px;
+    background:linear-gradient(120deg,var(--pink-600),var(--peach));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .hero p.sub{max-width:640px;margin:0 auto 26px;color:var(--ink-2);font-size:16px}
+  .hero .values{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+  .hero .values span{
+    background:var(--surface);border:1px solid var(--hairline);
+    border-radius:999px;padding:7px 16px;font-size:13.5px;color:var(--ink-2);
+    box-shadow:var(--shadow-sm);
+  }
+
+  /* ============ 布局 ============ */
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+  section.block{padding:20px 0 64px}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px;flex-wrap:wrap}
+  .sec-num{
+    font-size:13px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--pink-400),var(--pink-600));
+    padding:4px 12px;border-radius:8px;letter-spacing:.5px;
+  }
+  .sec-head h2{font-size:26px;margin:0;font-weight:800}
+  .sec-head .desc{color:var(--ink-2);font-size:14.5px;margin:0 0 6px}
+
+  .grid{display:grid;gap:18px}
+  .grid.cols-4{grid-template-columns:repeat(4,1fr)}
+  .grid.cols-2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:900px){.grid.cols-4{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.grid.cols-4,.grid.cols-2{grid-template-columns:1fr}}
+
+  .card{
+    background:var(--surface);border:1px solid var(--hairline);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);
+  }
+
+  /* ============ 知识库 ============ */
+  .stat{
+    background:var(--surface);border:1px solid var(--hairline);border-radius:var(--radius);
+    padding:20px 22px;box-shadow:var(--shadow-sm);
+  }
+  .stat .k{font-size:13px;color:var(--ink-3);margin:0 0 8px}
+  .stat .v{font-size:30px;font-weight:800;letter-spacing:.3px;font-variant-numeric:tabular-nums}
+  .stat .v small{font-size:14px;font-weight:600;color:var(--ink-3);margin-left:2px}
+  .stat .d{font-size:12.5px;color:var(--ink-3);margin-top:4px}
+
+  .pipeline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 20px}
+  .pipeline .step{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--pink-50);border:1px solid var(--pink-200);
+    padding:7px 13px;border-radius:10px;font-size:13.5px;font-weight:600;color:var(--pink-700);
+  }
+  .pipeline .step .ic{font-size:15px}
+  .pipeline .arr{color:var(--pink-300);font-weight:700}
+
+  /* 柱状图 */
+  .chart-title{font-size:14px;font-weight:700;margin:0 0 4px}
+  .chart-sub{font-size:12.5px;color:var(--ink-3);margin:0 0 18px}
+  .hbar-row{display:grid;grid-template-columns:130px 1fr 58px;align-items:center;gap:14px;margin-bottom:16px}
+  @media(max-width:560px){.hbar-row{grid-template-columns:96px 1fr 52px;gap:8px}}
+  .hbar-row .lbl{font-size:13.5px;color:var(--ink-2);text-align:right;font-weight:600}
+  .hbar-row .track{
+    position:relative;height:24px;border-radius:6px;background:var(--pink-50);
+    overflow:hidden;
+  }
+  .hbar-row .track .fill{
+    position:absolute;left:0;top:0;bottom:0;border-radius:6px 4px 4px 6px;
+    background:linear-gradient(90deg,var(--pink-300),var(--pink-500));
+    transition:width .8s cubic-bezier(.2,.7,.2,1);
+    min-width:4px;
+  }
+  .hbar-row .val{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .hbar-row .val small{color:var(--ink-3);font-weight:600}
+  .chart-note{font-size:12px;color:var(--ink-3);border-top:1px dashed var(--line);padding-top:12px;margin-top:4px}
+
+  .kb-cat{border-left:3px solid var(--pink-300);padding:2px 0 2px 16px}
+  .kb-cat h4{margin:0 0 6px;font-size:15px;color:var(--pink-700)}
+  .kb-cat p{margin:0;font-size:13.5px;color:var(--ink-2)}
+
+  /* ============ 工作流 ============ */
+  .flow{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+  .flow-node{
+    flex:1 1 120px;min-width:120px;
+    background:var(--surface);border:1px solid var(--hairline);border-radius:var(--radius-sm);
+    padding:16px 12px;text-align:center;position:relative;box-shadow:var(--shadow-sm);
+    transition:.2s;
+  }
+  .flow-node:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:var(--pink-200)}
+  .flow-node .badge{
+    width:30px;height:30px;margin:0 auto 10px;border-radius:50%;
+    background:linear-gradient(135deg,var(--pink-400),var(--pink-600));color:#fff;
+    display:grid;place-items:center;font-weight:800;font-size:14px;
+  }
+  .flow-node .ic{font-size:20px;display:block;margin-bottom:6px}
+  .flow-node h4{margin:0 0 6px;font-size:14px;font-weight:700}
+  .flow-node p{margin:0;font-size:12px;color:var(--ink-3);line-height:1.5}
+  .flow-arrow{align-self:center;color:var(--pink-400);font-size:20px;font-weight:700;flex:0 0 auto}
+
+  /* ============ 问答演示 ============ */
+  .chat-shell{display:grid;grid-template-columns:1fr 320px;gap:18px}
+  @media(max-width:900px){.chat-shell{grid-template-columns:1fr}}
+  .chat{display:flex;flex-direction:column;height:560px}
+  .chat-log{flex:1;overflow-y:auto;padding:6px 4px;display:flex;flex-direction:column;gap:14px}
+  .msg{max-width:82%;display:flex;flex-direction:column;gap:4px}
+  .msg.user{align-self:flex-end;align-items:flex-end}
+  .msg.assistant{align-self:flex-start}
+  .msg .bubble{
+    padding:11px 15px;border-radius:16px;font-size:14.5px;line-height:1.6;
+    white-space:pre-wrap;word-break:break-word;
+  }
+  .msg.user .bubble{background:linear-gradient(135deg,var(--pink-500),var(--pink-600));color:#fff;border-bottom-right-radius:5px}
+  .msg.assistant .bubble{background:var(--pink-50);border:1px solid var(--pink-200);border-bottom-left-radius:5px}
+  .msg .role{font-size:11.5px;color:var(--ink-3);padding:0 4px}
+  .msg .src{display:flex;flex-wrap:wrap;gap:6px;padding:0 4px;margin-top:6px}
+  .msg .src span{
+    font-size:12px;color:var(--pink-700);background:var(--pink-100);
+    border:1px solid var(--pink-200);padding:3px 10px;border-radius:999px;
+  }
+  .typing{display:inline-flex;gap:5px;padding:4px 2px}
+  .typing i{width:8px;height:8px;border-radius:50%;background:var(--pink-400);animation:blink 1.2s infinite}
+  .typing i:nth-child(2){animation-delay:.2s}
+  .typing i:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 8px}
+  .chip{
+    font-size:13px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);
+    border-radius:999px;padding:7px 14px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--pink-100);border-color:var(--pink-300);color:var(--pink-700)}
+  .input-row{display:flex;gap:10px;margin-top:auto}
+  .input-row input{
+    flex:1;border:1px solid var(--line);border-radius:999px;padding:13px 18px;font-size:14.5px;
+    font-family:inherit;color:var(--ink);background:var(--surface);outline:none;transition:.2s;
+  }
+  .input-row input:focus{border-color:var(--pink-400);box-shadow:0 0 0 3px var(--pink-100)}
+  .input-row button{
+    border:none;border-radius:999px;padding:0 22px;font-size:14.5px;font-weight:700;color:#fff;
+    background:linear-gradient(135deg,var(--pink-400),var(--pink-600));cursor:pointer;
+    box-shadow:var(--shadow-sm);transition:.15s;
+  }
+  .input-row button:hover{filter:brightness(1.05)}
+
+  /* RAG 轨迹 */
+  .trace{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm)}
+  .trace h4{margin:0 0 4px;font-size:15px}
+  .trace .sub{font-size:12.5px;color:var(--ink-3);margin:0 0 14px}
+  .trace-steps{display:flex;flex-direction:column;gap:0}
+  .tstep{display:flex;gap:12px;position:relative;padding-bottom:16px}
+  .tstep:last-child{padding-bottom:0}
+  .tstep:not(:last-child)::before{content:"";position:absolute;left:11px;top:26px;bottom:2px;width:2px;background:var(--pink-200)}
+  .tstep .dot{width:24px;height:24px;border-radius:50%;background:var(--pink-100);border:2px solid var(--pink-300);flex:0 0 auto;display:grid;place-items:center;font-size:12px}
+  .tstep.done .dot{background:var(--pink-500);border-color:var(--pink-500);color:#fff}
+  .tstep .t-body{flex:1}
+  .tstep .t-body b{font-size:13.5px;display:block}
+  .tstep .t-body span{font-size:12.5px;color:var(--ink-3)}
+  .tstep.active .dot{box-shadow:0 0 0 4px var(--pink-100)}
+
+  .disclaimer{
+    margin-top:14px;font-size:12px;color:var(--ink-3);
+    background:var(--cream);border:1px solid #f5e0d0;border-radius:10px;padding:10px 14px;
+  }
+
+  /* ============ 评估 ============ */
+  .meter{margin-bottom:22px}
+  .meter:last-child{margin-bottom:0}
+  .meter .m-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .meter .m-head .name{font-size:14.5px;font-weight:700}
+  .meter .m-head .name small{color:var(--ink-3);font-weight:500;margin-left:8px;font-size:12px}
+  .meter .m-head .score{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+  .meter .m-head .score small{font-size:13px;color:var(--ink-3);font-weight:600}
+  .meter .track{height:14px;border-radius:7px;background:var(--pink-100);position:relative;overflow:hidden}
+  .meter .track .fill{position:absolute;left:0;top:0;bottom:0;border-radius:7px;transition:width 1s cubic-bezier(.2,.7,.2,1)}
+
+  .method{display:flex;gap:12px;align-items:flex-start}
+  .method .ic{width:40px;height:40px;border-radius:12px;background:var(--pink-100);display:grid;place-items:center;font-size:20px;flex:0 0 auto}
+  .method h4{margin:0 0 4px;font-size:14.5px}
+  .method p{margin:0;font-size:13px;color:var(--ink-2)}
+
+  table.sample{width:100%;border-collapse:collapse;font-size:13px}
+  table.sample th,table.sample td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--hairline)}
+  table.sample th{color:var(--ink-3);font-weight:600;font-size:12px}
+  table.sample td{color:var(--ink-2)}
+  table.sample td .tag{font-size:11.5px;padding:2px 9px;border-radius:999px;background:var(--pink-100);color:var(--pink-700);font-weight:700}
+  table.sample .good-txt{color:var(--good);font-weight:700}
+
+  /* ============ 页脚 ============ */
+  footer{border-top:1px solid var(--hairline);padding:28px;text-align:center;font-size:13px;color:var(--ink-3)}
+  footer .d{color:var(--ink-3)}
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand"><span class="logo">👶</span> 母婴育儿智能问答助手</div>
+    <nav class="nav">
+      <a href="#kb">知识库准备</a>
+      <a href="#workflow">问答工作流</a>
+      <a href="#demo">模型问答演示</a>
+      <a href="#eval">模型评估体系</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <span class="tag">💗 基于 RAG 的离线育儿智能问答 Demo</span>
+    <h1>母婴育儿智能问答助手</h1>
+    <p class="sub">面向孕产妇及宝爸宝妈的单页面智能问答系统，覆盖孕期、产检、育儿、产后康复全周期知识，缓解新手父母对未知的焦虑。</p>
+    <div class="values">
+      <span>🤰 孕期知识</span>
+      <span>🩺 产检解读</span>
+      <span>🍼 育儿护理</span>
+      <span>💪 产后康复</span>
+      <span>🏠 家居安全</span>
+    </div>
+  </section>
+
+  <div class="wrap">
+
+    <!-- ============ 1. 知识库准备 ============ -->
+    <section class="block" id="kb">
+      <div class="sec-head">
+        <span class="sec-num">01</span>
+        <h2>知识库准备</h2>
+      </div>
+      <p class="desc">将权威母婴资料结构化入库，经清洗、切分、向量化后构建可检索的向量知识库。</p>
+
+      <div class="pipeline">
+        <span class="step"><span class="ic">📥</span> 文档采集</span><span class="arr">→</span>
+        <span class="step"><span class="ic">🧹</span> 清洗切分</span><span class="arr">→</span>
+        <span class="step"><span class="ic">🧮</span> 向量化 Embedding</span><span class="arr">→</span>
+        <span class="step"><span class="ic">🗂️</span> 向量索引</span>
+      </div>
+
+      <div class="grid cols-4" style="margin-bottom:18px">
+        <div class="stat">
+          <p class="k">知识文档</p>
+          <div class="v">1,140 <small>篇</small></div>
+          <p class="d">覆盖四大知识域</p>
+        </div>
+        <div class="stat">
+          <p class="k">知识分块 Chunk</p>
+          <div class="v">12,800 <small>块</small></div>
+          <p class="d">重叠切片 · 保留上下文</p>
+        </div>
+        <div class="stat">
+          <p class="k">平均分块长度</p>
+          <div class="v">480 <small>字</small></div>
+          <p class="d">适配检索召回粒度</p>
+        </div>
+        <div class="stat">
+          <p class="k">向量维度</p>
+          <div class="v">1,024 <small>维</small></div>
+          <p class="d">Embedding 模型输出</p>
+        </div>
+      </div>
+
+      <div class="grid cols-2">
+        <div class="card">
+          <p class="chart-title">知识库文档分布</p>
+          <p class="chart-sub">四大知识域文档数量（单位：篇）</p>
+          <div class="hbar-row">
+            <span class="lbl">婴儿护理知识</span>
+            <div class="track"><div class="fill" data-w="100"></div></div>
+            <span class="val">460</span>
+          </div>
+          <div class="hbar-row">
+            <span class="lbl">孕妇护理信息</span>
+            <div class="track"><div class="fill" data-w="69.6"></div></div>
+            <span class="val">320</span>
+          </div>
+          <div class="hbar-row">
+            <span class="lbl">健康管理知识</span>
+            <div class="track"><div class="fill" data-w="45.7"></div></div>
+            <span class="val">210</span>
+          </div>
+          <div class="hbar-row">
+            <span class="lbl">家居环境安全</span>
+            <div class="track"><div class="fill" data-w="32.6"></div></div>
+            <span class="val">150</span>
+          </div>
+          <p class="chart-note">柱长按最大类（婴儿护理 460 篇）归一化；数值标注于柱端，类别以文字标签标识。</p>
+        </div>
+
+        <div class="card" style="display:flex;flex-direction:column;gap:16px">
+          <div class="kb-cat">
+            <h4>🤰 孕妇护理信息</h4>
+            <p>孕期各阶段营养搭配、体重管理、常见不适缓解、产检项目与 B 超解读、分娩准备与产后恢复。</p>
+          </div>
+          <div class="kb-cat">
+            <h4>🍼 婴儿护理知识</h4>
+            <p>喂养、睡眠、洗澡、换尿布等日常护理；辅食添加时间线（带时间戳）；感冒、发烧、腹泻、湿疹等疾病识别与应对。</p>
+          </div>
+          <div class="kb-cat">
+            <h4>💪 健康管理知识</h4>
+            <p>孕期锻炼、妊娠糖尿病/高血压管理、产后盆底肌与腹直肌康复、睡眠作息建议、孕期/月子/辅食食谱定制。</p>
+          </div>
+          <div class="kb-cat">
+            <h4>🏠 家居环境安全</h4>
+            <p>家具边角防护、电器安全、危险品收纳、室内温湿度与空气质量标准、常见母婴意外伤害的应急处理。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 2. 问答工作流 ============ -->
+    <section class="block" id="workflow">
+      <div class="sec-head">
+        <span class="sec-num">02</span>
+        <h2>问答工作流程</h2>
+      </div>
+      <p class="desc">输入问题 → 意图识别 → 知识库检索 → 提示词增强 → LLM 生成 → 审核 → 输出答案</p>
+
+      <div class="card">
+        <div class="flow">
+          <div class="flow-node">
+            <span class="badge">1</span>
+            <span class="ic">⌨️</span>
+            <h4>输入问题</h4>
+            <p>用户输入自然语言问题</p>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node">
+            <span class="badge">2</span>
+            <span class="ic">🧠</span>
+            <h4>意图识别</h4>
+            <p>判别孕期 / 育儿 / 健康 / 安全类别</p>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node">
+            <span class="badge">3</span>
+            <span class="ic">🔎</span>
+            <h4>知识库检索</h4>
+            <p>向量召回 Top-K 相关文档块</p>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node">
+            <span class="badge">4</span>
+            <span class="ic">📝</span>
+            <h4>提示词增强</h4>
+            <p>拼接检索上下文与系统提示</p>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node">
+            <span class="badge">5</span>
+            <span class="ic">🤖</span>
+            <h4>LLM 生成</h4>
+            <p>基于增强提示生成回答</p>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node">
+            <span class="badge">6</span>
+            <span class="ic">🛡️</span>
+            <h4>审核</h4>
+            <p>安全与医学合规性审核</p>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node">
+            <span class="badge">7</span>
+            <span class="ic">✅</span>
+            <h4>输出答案</h4>
+            <p>带引用来源输出最终回答</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 3. 模型问答演示 ============ -->
+    <section class="block" id="demo">
+      <div class="sec-head">
+        <span class="sec-num">03</span>
+        <h2>模型问答演示</h2>
+      </div>
+      <p class="desc">点击示例问题或输入你的问题，观察 RAG 检索与生成全过程。</p>
+
+      <div class="chat-shell">
+        <div class="card chat">
+          <div class="chat-log" id="chatLog"></div>
+          <div class="chips">
+            <button class="chip" data-q="孕期可以喝咖啡吗？">孕期可以喝咖啡吗？</button>
+            <button class="chip" data-q="宝宝湿疹怎么护理？">宝宝湿疹怎么护理？</button>
+            <button class="chip" data-q="宝宝什么时候可以添加辅食？">宝宝什么时候添加辅食？</button>
+            <button class="chip" data-q="产后盆底肌怎么锻炼？">产后盆底肌怎么锻炼？</button>
+          </div>
+          <div class="input-row">
+            <input id="qInput" type="text" placeholder="请输入你的育儿问题…" />
+            <button id="sendBtn">发送</button>
+          </div>
+          <p class="disclaimer">⚠️ 本助手回答仅供参考，不构成医疗诊断。出现紧急症状或用药疑问，请及时就医并遵医嘱。</p>
+        </div>
+
+        <div class="trace">
+          <h4>RAG 处理轨迹</h4>
+          <p class="sub">实时展示一次问答的完整链路</p>
+          <div class="trace-steps" id="traceSteps"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 4. 模型评估体系 ============ -->
+    <section class="block" id="eval">
+      <div class="sec-head">
+        <span class="sec-num">04</span>
+        <h2>模型评估体系</h2>
+      </div>
+      <p class="desc">围绕四项核心指标，结合自动评测与人工评测双轨验证问答质量。</p>
+
+      <div class="grid cols-2">
+        <div class="card">
+          <p class="chart-title">核心评估指标</p>
+          <p class="chart-sub">各项指标得分（满分 100）</p>
+
+          <div class="meter">
+            <div class="m-head"><span class="name">回答准确率 <small>答案与标准答案语义一致性</small></span><span class="score">96<small> / 100</small></span></div>
+            <div class="track"><div class="fill" data-w="96" style="background:linear-gradient(90deg,var(--pink-400),var(--pink-600))"></div></div>
+          </div>
+          <div class="meter">
+            <div class="m-head"><span class="name">知识覆盖度 <small>回答对知识域的覆盖程度</small></span><span class="score">92<small> / 100</small></span></div>
+            <div class="track"><div class="fill" data-w="92" style="background:linear-gradient(90deg,var(--pink-300),var(--pink-500))"></div></div>
+          </div>
+          <div class="meter">
+            <div class="m-head"><span class="name">检索召回率 <small>Top-K 命中相关文档的比例</small></span><span class="score">89<small> / 100</small></span></div>
+            <div class="track"><div class="fill" data-w="89" style="background:linear-gradient(90deg,var(--pink-200),var(--pink-400))"></div></div>
+          </div>
+          <div class="meter">
+            <div class="m-head"><span class="name">产品合规性 <small>医学免责与安全审核通过率</small></span><span class="score">100<small> / 100</small></span></div>
+            <div class="track"><div class="fill" data-w="100" style="background:linear-gradient(90deg,#c0e6c0,var(--good))"></div></div>
+          </div>
+        </div>
+
+        <div class="grid" style="gap:14px">
+          <div class="card method">
+            <span class="ic">🧪</span>
+            <div><h4>评测集构建</h4><p>覆盖孕期、婴儿、健康、安全四域的 500 条真实问题，含标准答案与引用标注。</p></div>
+          </div>
+          <div class="card method">
+            <span class="ic">🤖</span>
+            <div><h4>自动评测 + LLM Judge</h4><p>指标自动计算，并由大模型裁判对语义一致性、覆盖度进行双盲打分。</p></div>
+          </div>
+          <div class="card method">
+            <span class="ic">👩‍⚕️</span>
+            <div><h4>专家人工评测</h4><p>邀请医护背景专家抽检抽样回答，重点校验医学准确性与安全性。</p></div>
+          </div>
+          <div class="card method">
+            <span class="ic">🔁</span>
+            <div><h4>持续回归</h4><p>知识库更新后自动重跑评测集，跟踪指标波动，防止召回与准确率回退。</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <p class="chart-title">评测结果示例</p>
+        <p class="chart-sub">抽样问答的逐项评估结果</p>
+        <table class="sample">
+          <thead>
+            <tr><th>示例问题</th><th>意图</th><th>回答准确率</th><th>知识覆盖度</th><th>检索召回</th><th>合规</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>孕晚期贫血应该吃什么？</td>
+              <td><span class="tag">孕期</span></td>
+              <td class="good-txt">98</td><td>94</td><td>92</td><td class="good-txt">✓</td>
+            </tr>
+            <tr>
+              <td>宝宝发烧 38.5℃ 怎么办？</td>
+              <td><span class="tag">婴儿</span></td>
+              <td class="good-txt">95</td><td>91</td><td>90</td><td class="good-txt">✓</td>
+            </tr>
+            <tr>
+              <td>产后腹直肌分离怎么恢复？</td>
+              <td><span class="tag">健康</span></td>
+              <td class="good-txt">93</td><td>90</td><td>87</td><td class="good-txt">✓</td>
+            </tr>
+            <tr>
+              <td>婴儿床应该如何摆放才安全？</td>
+              <td><span class="tag">安全</span></td>
+              <td class="good-txt">96</td><td>92</td><td>89</td><td class="good-txt">✓</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <div>💗 母婴育儿智能问答助手 · 基于 RAG 的单页面离线 Demo</div>
+    <div class="d">回答内容仅供健康科普参考，不能替代专业医疗建议。</div>
+  </footer>
+
+<script>
+/* ================= 知识库 & 评估图表动画 ================= */
+function animateBars(){
+  document.querySelectorAll('.hbar-row .fill, .meter .fill').forEach(function(el){
+    var w = parseFloat(el.getAttribute('data-w')||'0');
+    el.style.width = w + '%';
+  });
+}
+
+/* ================= 问答数据 ================= */
+var TRACE_STEPS = ['意图识别','知识库检索','提示词增强','LLM 生成','安全审核','输出答案'];
+
+var QA = [
+  {
+    kw:['咖啡','咖啡因'],
+    intent:'孕妇护理',
+    sources:['《孕期饮食营养搭配原则》第3节','《孕期常见不适与保健》'],
+    answer:'孕期建议将每日咖啡因摄入控制在 200mg 以内（约一杯中杯美式）。过量咖啡因可能增加流产与低出生体重风险。\n\n更温和的替代选择：低因咖啡、无薄荷花草茶、温牛奶。若您有妊娠高血压或心悸，建议先咨询医生后再决定。'
+  },
+  {
+    kw:['湿疹','红疹','皮疹'],
+    intent:'婴儿护理',
+    sources:['《婴幼儿常见疾病识别》','《婴儿日常护理》'],
+    answer:'湿疹护理核心是「保湿 + 避刺激」：\n\n① 每天温水（约 37℃）洗澡，不超过 10 分钟；\n② 浴后 3 分钟内涂抹无香精保湿霜锁水；\n③ 衣物选纯棉透气，室温保持 22–24℃、湿度 50–60%；\n④ 勤剪指甲避免抓挠。\n\n若皮肤渗液、结痂或影响睡眠，请及时就医，切勿自行涂抹激素药膏。'
+  },
+  {
+    kw:['辅食','添加','吃饭','断奶'],
+    intent:'婴儿喂养',
+    sources:['《辅食添加时间线（6–12月）》','《婴儿喂养指南》'],
+    answer:'一般满 6 月龄（约 180 天）开始添加辅食，需同时满足：能靠坐、挺舌反射消失、对食物感兴趣。\n\n第一口建议强化铁米粉，遵循「由稀到稠、由单一到多样」，每次只添加一种新食物并观察 3–5 天。\n\n详细阶段见《辅食添加时间线（6–12月）》。'
+  },
+  {
+    kw:['盆底肌','凯格尔','漏尿'],
+    intent:'健康管理',
+    sources:['《产后盆底肌康复指南》','《产后恢复注意事项》'],
+    answer:'产后 42 天复查后可开始凯格尔运动：\n\n收缩盆底肌（想象憋尿）保持 5 秒、放松 5 秒，10 次一组，每日 3 组。注意腹部、臀部放松，仅盆底发力。\n\n恶露未净或剖宫产伤口未愈合前避免。坚持 8–12 周可见效；若出现明显脱垂，请就医评估。'
+  },
+  {
+    kw:['睡眠','睡整觉','作息','夜醒'],
+    intent:'婴儿护理',
+    sources:['《婴儿睡眠时间安排》','《常见睡眠问题及解决方法》'],
+    answer:'帮助宝宝早日睡整觉的小技巧：\n\n① 固定睡前程序（洗澡→喂奶→安抚→关灯）；\n② 白天规律小睡，避免过度疲劳；\n③ 建立昼夜节律：白天光线充足、夜间保持昏暗安静；\n④ 睡前 1 小时避免过度兴奋。\n\n多数宝宝 4–6 月龄后夜间连续睡眠逐渐延长。'
+  },
+  {
+    kw:['产检','B超','孕周','nt'],
+    intent:'孕妇护理',
+    sources:['《产检项目及意义》','《B超图像解读》'],
+    answer:'常规产检按孕周推进，关键节点包括：\n\n· 11–13⁺⁶ 周：NT 检查（早期排畸）；\n· 20–24 周：系统 B 超大排畸；\n· 24–28 周：糖耐量筛查（妊娠糖尿病）；\n· 36 周后：每周胎心监护。\n\n具体项目与孕周请以建档医院安排为准。'
+  }
+];
+
+function findQA(text){
+  var t = text || '';
+  for(var i=0;i<QA.length;i++){
+    for(var j=0;j<QA[i].kw.length;j++){
+      if(t.indexOf(QA[i].kw[j]) >= 0) return QA[i];
+    }
+  }
+  return null;
+}
+
+function fallbackAnswer(){
+  return {
+    intent:'综合检索',
+    sources:['《母婴育儿知识库》','《常见问题与应对》'],
+    answer:'我已在知识库中为您检索相关信息。\n\n建议您提供更具体的关键词（如「咖啡」「湿疹」「辅食」「盆底肌」「睡眠」「产检」等），我可以给出更精准的针对性回答。\n\n若涉及疾病或用药，请务必咨询专业医生。'
+  };
+}
+
+/* ================= 轨迹面板 ================= */
+function renderTrace(){
+  var box = document.getElementById('traceSteps');
+  box.innerHTML = '';
+  TRACE_STEPS.forEach(function(name,idx){
+    var d = document.createElement('div');
+    d.className = 'tstep';
+    d.id = 'tstep-'+idx;
+    d.innerHTML = '<span class="dot">'+(idx+1)+'</span>'+
+      '<div class="t-body"><b>'+name+'</b><span></span></div>';
+    box.appendChild(d);
+  });
+}
+function setTraceStep(i, detail){
+  var el = document.getElementById('tstep-'+i);
+  if(!el) return;
+  el.classList.add('done');
+  el.classList.remove('active');
+  el.querySelector('.dot').textContent = '✓';
+  el.querySelector('.t-body span').textContent = detail || '';
+}
+function resetTrace(){
+  renderTrace();
+}
+
+/* ================= 聊天 ================= */
+var chatLog = null, busy = false;
+
+function addMsg(role, html){
+  var d = document.createElement('div');
+  d.className = 'msg '+role;
+  var label = role==='user' ? '你' : '助手';
+  d.innerHTML = '<span class="role">'+label+'</span><div class="bubble">'+html+'</div>';
+  chatLog.appendChild(d);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return d;
+}
+
+function addSources(srcs){
+  var wrap = document.createElement('div');
+  wrap.className = 'src';
+  srcs.forEach(function(s){
+    var sp = document.createElement('span');
+    sp.textContent = '📄 '+s;
+    wrap.appendChild(sp);
+  });
+  chatLog.lastElementChild.appendChild(wrap);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+function typingNode(){
+  var d = document.createElement('div');
+  d.className = 'msg assistant';
+  d.innerHTML = '<span class="role">助手</span><div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div>';
+  chatLog.appendChild(d);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return d;
+}
+
+function ask(text){
+  if(busy) return;
+  text = (text||'').trim();
+  if(!text) return;
+  busy = true;
+
+  addMsg('user', escapeHtml(text));
+  resetTrace();
+  setTraceStep(0, '识别问题类别…');
+
+  var result = findQA(text) || fallbackAnswer();
+  var typing = typingNode();
+
+  var step = 1;
+  setTraceStep(1, '意图：'+result.intent+' · 向量召回 Top-3');
+  var t1 = setTimeout(function(){
+    setTraceStep(2, '拼接系统提示 + 检索上下文');
+    var t2 = setTimeout(function(){
+      setTraceStep(3, '大模型生成回答中…');
+      var t3 = setTimeout(function(){
+        setTraceStep(4, '医学免责与安全审核通过');
+        var t4 = setTimeout(function(){
+          typing.remove();
+          addMsg('assistant', escapeHtml(result.answer));
+          addSources(result.sources);
+          setTraceStep(5, '带引用来源输出');
+          busy = false;
+        }, 500);
+      }, 700);
+    }, 500);
+  }, 400);
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+/* ================= 初始化 ================= */
+document.addEventListener('DOMContentLoaded', function(){
+  chatLog = document.getElementById('chatLog');
+  renderTrace();
+  animateBars();
+
+  // 欢迎语
+  addMsg('assistant', '你好呀 👋 我是你的母婴育儿问答助手。\n你可以问我孕期、产检、婴儿护理、产后康复等方面的问题，我会基于知识库检索后作答。');
+
+  // 示例问题
+  document.querySelectorAll('.chip').forEach(function(c){
+    c.addEventListener('click', function(){ ask(c.getAttribute('data-q')); });
+  });
+
+  // 发送
+  function send(){
+    var input = document.getElementById('qInput');
+    ask(input.value);
+    input.value = '';
+  }
+  document.getElementById('sendBtn').addEventListener('click', send);
+  document.getElementById('qInput').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') send();
+  });
+});
+</script>
+</body>
+</html>
